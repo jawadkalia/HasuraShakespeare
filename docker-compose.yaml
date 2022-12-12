@@ -1,0 +1,47 @@
+version: "3.7"
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: user-domain-db
+    environment:
+      - POSTGRES_USER=spill
+      - POSTGRES_PASSWORD=spiller
+      - POSTGRES_DB=spillt
+    ports:
+      - "5437:5432"
+
+  flyway:
+    image: flyway/flyway
+    command: -connectRetries=3 migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql
+      - ./flyway/conf:/flyway/conf
+    depends_on:
+      - db
+    links:
+      - db
+
+  graphql-engine:
+    # image: hasura/graphql-engine:latest.cli-migrations-v3
+    image: hasura/graphql-engine:latest
+    ports:
+      - "9177:8080"
+    depends_on:
+      - "db"
+    restart: always
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://spill:spiller@db:5432/spillt
+      ## enable the console served by server
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
+      ## enable debugging mode. It is recommended to disable this in production
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      ## uncomment next line to set an admin secret
+
+    command:
+      - graphql-engine
+      - serve
+    
+
+
+volumes:
+  m2cache:
